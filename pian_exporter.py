@@ -22,7 +22,7 @@
  ***************************************************************************/
 """
 from qgis.PyQt.QtCore import QSettings, QTranslator, QCoreApplication, QUrl
-from qgis.core import QgsProject, QgsCoordinateTransform, QgsCoordinateReferenceSystem, Qgis, QgsMessageLog, QgsMapLayer
+from qgis.core import QgsProject, QgsCoordinateTransform, QgsCoordinateReferenceSystem, Qgis, QgsMessageLog, QgsMapLayer, QgsGeometry
 from qgis.PyQt.QtGui import QIcon, QDesktopServices
 from qgis.PyQt.QtWidgets import QAction, QFileDialog, QInputDialog, QPushButton
 
@@ -181,7 +181,6 @@ class PianExporter:
                 action)
             self.iface.removeToolBarIcon(action)
 
-
     def run(self):
         # Konstanty, proměnné
         jtsk = 'EPSG:5514'
@@ -194,7 +193,6 @@ class PianExporter:
         if not layer_name or not ok:
             return
         
-
         # Kontroly vrstvy
         layer = QgsProject.instance().mapLayersByName(layer_name)[0]
         if not layer:
@@ -233,11 +231,12 @@ class PianExporter:
             epsg = epsg_original # Bug1 proměnná pro správný zápis epsg do csv, po případné transformaci se přepíše  
             for feature in layer.getFeatures():
                 geom = feature.geometry()
+                geom = self.convert_to_simple_XY(geom) # Bug2 problém s multigeometriemi
                 if (epsg_original not in [wgs84, jtsk]):
                     geom.transform(transformer)
                     epsg = wgs84
                 wkt = geom.asWkt()
-                label = f'geom_{feature.id()}'
+                label = f'geom_{feature.id()+1}'
                 epsg_number = self._get_epsg_number(epsg)
                 writer.writerow([label, epsg_number , wkt])
         
@@ -253,12 +252,25 @@ class PianExporter:
         # Zobrazení zprávy
         self.iface.messageBar().pushWidget(message_widget, Qgis.Success)
 
+    # převede na jednoduchou geometrii a odstraní případné Z a M hodnoty
+    def convert_to_simple_XY(self, geometry):
+        if geometry.isMultipart():
+            geometry.convertToSingleType()
+        geometry_type = geometry.type()
+        # QGisu (asi) chybí metody jako hasZ() a hasM() tak to pro jistotu převedeme
+        if geometry_type == 0:  # Body
+            return QgsGeometry.fromPointXY(geometry.asPoint())
+        elif geometry_type == 1:  # LineString
+            return QgsGeometry.fromPolylineXY(geometry.asPolyline())
+        elif geometry_type == 2:  # Polygon
+            return QgsGeometry.fromPolygonXY(geometry.asPolygon())
+        return geometry
+
     def _get_layer_names(self):
         return [layer.name() for layer in QgsProject.instance().mapLayers().values()]
 
     def open_folder(self, folder_path):
         QDesktopServices.openUrl(QUrl.fromLocalFile(folder_path))
     
-    # Vrátí číslo za dvojtečkou
     def _get_epsg_number(self, crs):
         return crs.split(':')[-1]

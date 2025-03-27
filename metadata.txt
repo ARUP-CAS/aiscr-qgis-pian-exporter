@@ -6,7 +6,7 @@
 name=Pian Exporter
 qgisMinimumVersion=3.0
 description=The plugin exports the vector layer in WKT format for PIAN.
-version=1.0
+version=1.1
 author=Marek Lečbych
 email=lecbych@uapp.cz
 
@@ -20,7 +20,8 @@ repository=https://github.com/MarekL75/pian_exporter
 
 hasProcessingProvider=no
 # Uncomment the following line and add your changelog:
-# changelog=
+changelog=Fixed an issue with multi-geometries and empty Z and M values.
+The plugin now converts multi-geometries to simple geometries.
 
 # Tags are comma separated with spaces allowed
 tags=python, AMČR, PIAN
