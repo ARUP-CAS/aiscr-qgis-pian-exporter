@@ -26,6 +26,8 @@ import os
 
 from qgis.PyQt import uic
 from qgis.PyQt import QtWidgets
+from qgis.core import QgsProject
+
 
 # This loads your .ui file so that PyQt can populate your plugin with the elements from Qt Designer
 FORM_CLASS, _ = uic.loadUiType(os.path.join(
@@ -33,12 +35,29 @@ FORM_CLASS, _ = uic.loadUiType(os.path.join(
 
 
 class PianExporterDialog(QtWidgets.QDialog, FORM_CLASS):
-    def __init__(self, parent=None):
+    def __init__(self, iface, parent=None):
         """Constructor."""
         super(PianExporterDialog, self).__init__(parent)
-        # Set up the user interface from Designer through FORM_CLASS.
-        # After self.setupUi() you can access any designer object by doing
-        # self.<objectname>, and you can use autoconnect slots - see
-        # http://qt-project.org/doc/qt-4.8/designer-using-a-ui-file.html
-        # #widgets-and-dialogs-with-auto-connect
+        self.iface = iface
         self.setupUi(self)
+
+        # Naplnit seznam vrstev při otevření dialogu
+        self.populate_layers()
+
+    def populate_layers(self):
+        """Naplní combobox seznamem vrstev a předvybere aktivní."""
+        # vyčistit combobox
+        self.layerComboBox.clear()
+
+        # Všechny vrstvy z projektu
+        layers = QgsProject.instance().mapLayers().values()
+        for layer in layers:
+            if layer.type() == 0:  # 0 = vector layer
+                self.layerComboBox.addItem(layer.name(), layer.id())
+
+        # Vyber aktuální aktivní vrstvu
+        active_layer = self.iface.activeLayer()
+        if active_layer:
+            index = self.layerComboBox.findData(active_layer.id())
+            if index != -1:
+                self.layerComboBox.setCurrentIndex(index)
