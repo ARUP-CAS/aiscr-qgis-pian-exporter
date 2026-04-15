@@ -27,6 +27,7 @@ import os
 from qgis.PyQt import uic
 from qgis.PyQt import QtWidgets
 from qgis.core import QgsProject
+from qgis.core import QgsMapLayer
 
 
 # This loads your .ui file so that PyQt can populate your plugin with the elements from Qt Designer
@@ -52,7 +53,7 @@ class PianExporterDialog(QtWidgets.QDialog, FORM_CLASS):
         # Všechny vrstvy z projektu
         layers = QgsProject.instance().mapLayers().values()
         for layer in layers:
-            if layer.type() == 0:  # 0 = vector layer
+            if layer.type() == QgsMapLayer.VectorLayer:  # pouze vektorové vrstvy
                 self.layerComboBox.addItem(layer.name(), layer.id())
 
         # Vyber aktuální aktivní vrstvu

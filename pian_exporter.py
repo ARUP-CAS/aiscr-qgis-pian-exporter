@@ -8,7 +8,7 @@
  ***************************************************************************/
 """
 from qgis.PyQt.QtCore import QSettings, QTranslator, QCoreApplication, QUrl
-from qgis.core import QgsProject, QgsCoordinateTransform, QgsCoordinateReferenceSystem, Qgis, QgsMessageLog, QgsMapLayer, QgsGeometry
+from qgis.core import QgsProject, QgsCoordinateTransform, QgsCoordinateReferenceSystem, Qgis, QgsMessageLog, QgsMapLayer, QgsGeometry, QgsWkbTypes
 from qgis.PyQt.QtGui import QIcon, QDesktopServices
 from qgis.PyQt.QtWidgets import QAction, QFileDialog, QPushButton
 
@@ -117,13 +117,13 @@ class PianExporter:
 
         dialog.layerComboBox.currentTextChanged.connect(check_geometry)
         dialog.exportButton.clicked.connect(lambda: self.export_from_dialog(dialog))
-        dialog.exec_()
+        dialog.exec()
        
     def export_from_dialog(self, dialog):
         jtsk = 'EPSG:5514'
         wgs84 = 'EPSG:4326'
 
-        # TODO Tohle asi upravit je to až po dialog.exec_()
+        # TODO Tohle asi upravit je to až po dialog.exec() - ve v1.3 jsem ale zapomněl proč? :-)
         layer_name = dialog.layerComboBox.currentText()
         if not layer_name:
             dialog.statusLabel.setText("Vyber vrstvu!")
@@ -185,15 +185,22 @@ class PianExporter:
         dialog.accept()
 
     def convert_to_simple_XY(self, geometry):
+        geometry = QgsGeometry(geometry)  # bezpečná kopie
+
         if geometry.isMultipart():
             geometry.convertToSingleType()
+
         geometry_type = geometry.type()
-        if geometry_type == 0:  # Point
+
+        if geometry_type == QgsWkbTypes.PointGeometry:
             return QgsGeometry.fromPointXY(geometry.asPoint())
-        elif geometry_type == 1:  # LineString
+
+        elif geometry_type == QgsWkbTypes.LineGeometry:
             return QgsGeometry.fromPolylineXY(geometry.asPolyline())
-        elif geometry_type == 2:  # Polygon
+
+        elif geometry_type == QgsWkbTypes.PolygonGeometry:
             return QgsGeometry.fromPolygonXY(geometry.asPolygon())
+
         return geometry
 
     def _get_layer_names(self):
